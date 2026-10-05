@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Loader, LocateIcon, Mail, MapPin, Phone, User } from "lucide-react";
 import React from "react";
 
 const PersonalInfoForm = ({
@@ -13,7 +13,12 @@ onchange({
 [field]: value,
 });
 };
-
+const fields = [{key:"full_name",label:"Full Name",icon:User,type:"text",required:true},
+  {key:"email",label:"Email Address",icon:Mail,type:"email",required:true},
+  {key:"phone",label:"Phone Number",icon:Phone,type:"tel",required:true},
+  {key:"location",label:"Location",icon:MapPin,type:"text",required:true},
+  {key:"profession",label:"Profession",icon:User,type:"text",required:true},
+]
 return (
 <div>
 <h3 className="text-lg font-semibold text-gray-900">

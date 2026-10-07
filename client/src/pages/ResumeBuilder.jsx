@@ -102,7 +102,7 @@ Back to Dashboard </Link> </div>
           />
 
           <div className="flex justify-between items-center mb-6 border-b border-gray-300 py-1">
-            <div>
+            <div className="flex justify-between items-center mb-6 border-b border-gray-300 py-1">
               <TemplateSelector selectedTemplate={resumedata.template} onchange={(template)=>setresumedata(prev=>({...prev,template}))}/>
             </div>
 

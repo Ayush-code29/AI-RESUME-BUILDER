@@ -1,6 +1,7 @@
 import React from "react";
+
 import ClassicTemplate from "./MinimalImageTemplate";
-import MinimalTemplate from "./ModernTemplate";
+import MinimalTemplate from "./MinimalTemplate";
 
 const ResumePreview = ({
   data,
@@ -19,13 +20,6 @@ const ResumePreview = ({
         );
 
       case "classic":
-        return (
-          <ClassicTemplate
-            data={data}
-            accentColor={accentColor}
-          />
-        );
-
       default:
         return (
           <ClassicTemplate

@@ -10,7 +10,11 @@ const {
   deleteResume,
 } = require("../controllers/resumeController");
 
+const { protect } = require("../middleware/authMiddleware");
 const validateObjectId = require("../middleware/validateObjectId");
+
+// Every resume endpoint requires a valid JWT.
+router.use(protect);
 
 router.route("/")
   .post(createResume)

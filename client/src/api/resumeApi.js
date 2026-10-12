@@ -1,76 +1,99 @@
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-export const createResume = async (resumeData) => {
-  const response = await fetch(`${API_URL}/resumes`, {
+import { getAuthToken, clearSession, API_URL } from "./authApi";
+
+function toResumePayload(resume) {
+  return {
+    title: resume.title,
+    personal_info: resume.personal_info,
+    professional_summary: resume.professional_summary,
+    experience: resume.experience,
+    education: resume.education,
+    project: resume.project,
+    skills: resume.skills,
+    template: resume.template,
+    accent_color: resume.accent_color,
+    public: resume.public,
+  };
+}
+
+async function resumeRequest(endpoint, options = {}) {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("Please log in to continue.");
+  }
+
+  let response;
+
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error(
+      "Cannot connect to the server. Check whether the backend is running."
+    );
+  }
+
+  const result = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    clearSession();
+    throw new Error("Your session has expired. Please log in again.");
+  }
+
+  if (!response.ok) {
+    throw new Error(result.message || "Resume request failed.");
+  }
+
+  return result;
+}
+
+export async function createResume(resumeData) {
+  const result = await resumeRequest("/resumes", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(resumeData),
+    body: JSON.stringify(toResumePayload(resumeData)),
   });
 
-  const data = await response.json();
+  return result.data;
+}
 
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to create resume");
-  }
+export async function updateResume(id, resumeData) {
+  const result = await resumeRequest(
+    `/resumes/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(toResumePayload(resumeData)),
+    }
+  );
 
-  return data;
-};
+  return result.data;
+}
 
-export const updateResume = async (id, resumeData) => {
-  const response = await fetch(`${API_URL}/resumes/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(resumeData),
-  });
+export async function getResume(id) {
+  const result = await resumeRequest(
+    `/resumes/${encodeURIComponent(id)}`
+  );
 
-  const data = await response.json();
+  return result.data;
+}
 
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to update resume");
-  }
+export async function getAllResumes() {
+  const result = await resumeRequest("/resumes");
 
-  return data;
-};
+  return Array.isArray(result.data) ? result.data : [];
+}
 
-export const getResume = async (id) => {
-  const response = await fetch(`${API_URL}/resumes/${id}`);
+export async function deleteResume(id) {
+  const result = await resumeRequest(
+    `/resumes/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch resume");
-  }
-
-  return data;
-};
-
-export const getAllResumes = async () => {
-  const response = await fetch(`${API_URL}/resumes`);
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch resumes");
-  }
-
-  return data;
-};
-
-export const deleteResume = async (id) => {
-  const response = await fetch(`${API_URL}/resumes/${id}`, {
-    method: "DELETE",
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to delete resume");
-  }
-
-  return data;
-};
+  return result.data;
+}

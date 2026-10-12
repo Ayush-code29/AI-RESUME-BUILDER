@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,141 +10,184 @@ import {
 } from "lucide-react";
 
 import PersonalInfoForm from "../components/PersonalInfoForm";
-import ResumePreview from "../components/ResumePreview";
 import SummaryForm from "../components/SummaryForm";
+import ExperienceForm from "../components/ExperienceForm";
 import EducationForm from "../components/EducationForm";
 import ProjectForm from "../components/ProjectForm";
 import SkillsForm from "../components/SkillsForm";
+import ResumePreview from "../components/ResumePreview";
 import TemplateSelector from "../components/TemplateSelector";
-import ExperienceForm from "../components/ExperienceForm";
 
 import {
   createResume,
+  getResume,
   updateResume,
 } from "../api/resumeApi";
 
-const ResumeBuilder = () => {
-  const [resumedata, setResumeData] = useState({
-    _id: null,
-    title: "My Resume",
+const createInitialResume = () => ({
+  _id: null,
+  title: "My Resume",
+  personal_info: {
+    full_name: "",
+    email: "",
+    phone: "",
+    location: "",
+    profession: "",
+    linkedin: "",
+    website: "",
+    image: "",
+  },
+  professional_summary: "",
+  experience: [],
+  education: [],
+  project: [],
+  skills: [],
+  template: "classic",
+  accent_color: "#3BB2F6",
+  public: false,
+});
 
+function normalizeResume(resume = {}) {
+  const initial = createInitialResume();
+
+  return {
+    ...initial,
+    ...resume,
     personal_info: {
-      full_name: "",
-      email: "",
-      phone: "",
-      location: "",
-      profession: "",
-      linkedin: "",
-      website: "",
-      image: "",
+      ...initial.personal_info,
+      ...(resume.personal_info || {}),
     },
+    professional_summary:
+      typeof resume.professional_summary === "string"
+        ? resume.professional_summary
+        : "",
+    experience: Array.isArray(resume.experience)
+      ? resume.experience
+      : [],
+    education: Array.isArray(resume.education)
+      ? resume.education
+      : [],
+    project: Array.isArray(resume.project)
+      ? resume.project
+      : [],
+    skills: Array.isArray(resume.skills)
+      ? resume.skills.filter((skill) => typeof skill === "string")
+      : [],
+  };
+}
 
-    professional_summary: "",
+export default function ResumeBuilder() {
+  const { resumeId } = useParams();
 
-    experience: [],
-
-    education: [],
-
-    project: [],
-
-    skills: [],
-
-    template: "classic",
-
-    accent_color: "#3BB2F6",
-
-    public: false,
-  });
-
+  const [resumedata, setResumeData] = useState(createInitialResume);
   const [activeSection, setActiveSection] = useState(0);
-
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [saveMessage, setSaveMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
 
   const sections = [
-    {
-      title: "Personal Info",
-      key: "personal",
-    },
-    {
-      title: "Summary",
-      key: "summary",
-    },
-    {
-      title: "Experience",
-      key: "experience",
-    },
-    {
-      title: "Education",
-      key: "education",
-    },
-    {
-      title: "Projects",
-      key: "projects",
-    },
-    {
-      title: "Skills",
-      key: "skills",
-    },
+    { title: "Personal Information", key: "personal" },
+    { title: "Professional Summary", key: "summary" },
+    { title: "Work Experience", key: "experience" },
+    { title: "Education", key: "education" },
+    { title: "Projects", key: "projects" },
+    { title: "Skills", key: "skills" },
   ];
 
-  const handleChange = (data) => {
-    setResumeData(data);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadResume() {
+      setLoading(true);
+      setSaveMessage("");
+
+      if (!resumeId || resumeId === "new") {
+        setResumeData(createInitialResume());
+        setActiveSection(0);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const result = await getResume(resumeId);
+
+        if (!cancelled) {
+          setResumeData(normalizeResume(result));
+          setActiveSection(0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMessageType("error");
+          setSaveMessage(error.message || "Unable to load resume.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadResume();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeId]);
+
+  // Merge partial updates instead of replacing the complete resume.
+  const handleChange = (updates) => {
+    setResumeData((previous) => ({
+      ...previous,
+      ...updates,
+      personal_info: {
+        ...previous.personal_info,
+        ...(updates.personal_info || {}),
+      },
+    }));
+
+    setSaveMessage("");
   };
 
   const handleSave = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    setSaveMessage("");
+
     try {
-      setSaving(true);
-      setSaveMessage("");
+      const payload = normalizeResume(resumedata);
 
-      let response;
+      const savedResume = payload._id
+        ? await updateResume(payload._id, payload)
+        : await createResume(payload);
 
-      // If resume already exists in MongoDB,
-      // update the existing resume.
-      if (resumedata._id) {
-        response = await updateResume(
-          resumedata._id,
-          resumedata
-        );
-      } else {
-        // Otherwise create a new resume.
-        response = await createResume(resumedata);
+      if (!savedResume) {
+        throw new Error("The server did not return the saved resume.");
       }
 
-      if (response?.resume?._id) {
-        setResumeData((previous) => ({
+      setResumeData((previous) =>
+        normalizeResume({
           ...previous,
-          _id: response.resume._id,
-        }));
-      }
-
-      setSaveMessage("Resume saved successfully");
-
-      setTimeout(() => {
-        setSaveMessage("");
-      }, 3000);
-    } catch (error) {
-      console.error("Save resume error:", error);
-
-      setSaveMessage(
-        error.message || "Failed to save resume"
+          ...savedResume,
+          _id: savedResume._id || previous._id,
+        })
       );
+
+      setMessageType("success");
+      setSaveMessage("Resume saved successfully.");
+    } catch (error) {
+      setMessageType("error");
+      setSaveMessage(error.message || "Failed to save resume.");
     } finally {
       setSaving(false);
     }
   };
 
-  const nextSection = () => {
-    if (activeSection < sections.length - 1) {
-      setActiveSection((previous) => previous + 1);
-    }
-  };
-
-  const previousSection = () => {
-    if (activeSection > 0) {
-      setActiveSection((previous) => previous - 1);
-    }
+  const goToSection = (index) => {
+    setActiveSection(
+      Math.max(0, Math.min(index, sections.length - 1))
+    );
   };
 
   const renderActiveSection = () => {
@@ -166,32 +211,32 @@ const ResumeBuilder = () => {
       case "experience":
         return (
           <ExperienceForm
-            data={resumedata}
-            onchange={handleChange}
+            data={resumedata.experience}
+            onchange={(experience) => handleChange({ experience })}
           />
         );
 
       case "education":
         return (
           <EducationForm
-            data={resumedata}
-            onchange={handleChange}
+            data={resumedata.education}
+            onchange={(education) => handleChange({ education })}
           />
         );
 
       case "projects":
         return (
           <ProjectForm
-            data={resumedata}
-            onchange={handleChange}
+            data={resumedata.project}
+            onchange={(project) => handleChange({ project })}
           />
         );
 
       case "skills":
         return (
           <SkillsForm
-            data={resumedata}
-            onchange={handleChange}
+            data={resumedata.skills}
+            onchange={(skills) => handleChange({ skills })}
           />
         );
 
@@ -200,52 +245,57 @@ const ResumeBuilder = () => {
     }
   };
 
-  const progress =
-    ((activeSection + 1) / sections.length) * 100;
+  const progress = ((activeSection + 1) / sections.length) * 100;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center gap-3 text-gray-500">
+        <LoaderCircle size={22} className="animate-spin" />
+        Loading your resume...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-[1600px] px-4 py-6">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
+        <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Resume Builder
             </h1>
-
-            <p className="text-sm text-gray-500">
-              Build your professional resume
+            <p className="mt-1 text-sm text-gray-500">
+              Build and customize your professional resume.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {saveMessage && (
-              <div
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm ${
-                  saveMessage.includes("successfully")
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
+              <p
+                role="status"
+                aria-live="polite"
+                className={`text-sm ${
+                  messageType === "success"
+                    ? "text-green-700"
+                    : "text-red-600"
                 }`}
               >
-                {saveMessage.includes("successfully") && (
-                  <Check size={16} />
+                {messageType === "success" && (
+                  <Check size={16} className="mr-1 inline" />
                 )}
-
                 {saveMessage}
-              </div>
+              </p>
             )}
 
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
                 <>
-                  <LoaderCircle
-                    size={17}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={17} className="animate-spin" />
                   Saving...
                 </>
               ) : (
@@ -256,57 +306,66 @@ const ResumeBuilder = () => {
               )}
             </button>
           </div>
-        </div>
+        </header>
 
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-700">
+        <section className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-gray-800">
               {sections[activeSection].title}
             </span>
-
-            <span className="text-gray-500">
-              {activeSection + 1} / {sections.length}
+            <span className="text-sm text-gray-500">
+              Step {activeSection + 1} of {sections.length}
             </span>
           </div>
 
-          <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-2 overflow-hidden rounded-full bg-gray-100"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress)}
+          >
             <div
               className="h-full rounded-full transition-all duration-300"
               style={{
                 width: `${progress}%`,
-                backgroundColor: resumedata.accent_color,
+                backgroundColor: resumedata.accent_color || "#3BB2F6",
               }}
             />
           </div>
-        </div>
 
-        <div className="mb-6 flex gap-2 overflow-x-auto rounded-xl bg-white p-2 shadow-sm">
-          {sections.map((section, index) => (
-            <button
-              type="button"
-              key={section.key}
-              onClick={() => setActiveSection(index)}
-              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-                activeSection === index
-                  ? "bg-black text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {index + 1}. {section.title}
-            </button>
-          ))}
-        </div>
+          <nav
+            aria-label="Resume sections"
+            className="mt-4 flex gap-2 overflow-x-auto pb-1"
+          >
+            {sections.map((section, index) => (
+              <button
+                key={section.key}
+                type="button"
+                onClick={() => goToSection(index)}
+                aria-current={activeSection === index ? "step" : undefined}
+                className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  activeSection === index
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {index + 1}. {section.title}
+              </button>
+            ))}
+          </nav>
+        </section>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
             {renderActiveSection()}
 
-            <div className="mt-8 flex items-center justify-between border-t pt-5">
+            <div className="mt-8 flex items-center justify-between gap-3 border-t border-gray-200 pt-5">
               <button
                 type="button"
-                onClick={previousSection}
+                onClick={() => goToSection(activeSection - 1)}
                 disabled={activeSection === 0}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ArrowLeft size={17} />
                 Previous
@@ -314,29 +373,26 @@ const ResumeBuilder = () => {
 
               <button
                 type="button"
-                onClick={nextSection}
-                disabled={
-                  activeSection === sections.length - 1
-                }
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => goToSection(activeSection + 1)}
+                disabled={activeSection === sections.length - 1}
+                className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{
-                  backgroundColor: resumedata.accent_color,
+                  backgroundColor: resumedata.accent_color || "#3BB2F6",
                 }}
               >
                 Next
                 <ArrowRight size={17} />
               </button>
             </div>
-          </div>
+          </section>
 
-          <div className="rounded-xl bg-white p-5 shadow-sm">
+          <aside className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
             <div className="mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-bold text-gray-900">
                 Resume Preview
               </h2>
-
-              <p className="text-sm text-gray-500">
-                Changes appear here automatically
+              <p className="mt-1 text-sm text-gray-500">
+                Your changes appear here as you edit.
               </p>
             </div>
 
@@ -344,17 +400,11 @@ const ResumeBuilder = () => {
               <TemplateSelector
                 template={resumedata.template}
                 onChange={(template) =>
-                  setResumeData((previous) => ({
-                    ...previous,
-                    template,
-                  }))
+                  handleChange({ template })
                 }
                 accentColor={resumedata.accent_color}
                 setAccentColor={(accent_color) =>
-                  setResumeData((previous) => ({
-                    ...previous,
-                    accent_color,
-                  }))
+                  handleChange({ accent_color })
                 }
               />
             </div>
@@ -364,11 +414,9 @@ const ResumeBuilder = () => {
               template={resumedata.template}
               accentColor={resumedata.accent_color}
             />
-          </div>
+          </aside>
         </div>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default ResumeBuilder;
+}

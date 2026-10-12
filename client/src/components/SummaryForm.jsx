@@ -1,7 +1,20 @@
+
 import { FileText, Sparkles } from "lucide-react";
 import React from "react";
 
 const SummaryForm = ({ data, onchange }) => {
+  const summary =
+    typeof data?.professional_summary === "string"
+      ? data.professional_summary
+      : "";
+
+  const handleChange = (value) => {
+    onchange({
+      ...data,
+      professional_summary: value,
+    });
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -9,7 +22,7 @@ const SummaryForm = ({ data, onchange }) => {
           Professional Summary
         </h3>
 
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="mt-1 text-sm text-gray-600">
           Write a short professional summary that highlights your experience,
           skills and career goals.
         </p>
@@ -22,21 +35,21 @@ const SummaryForm = ({ data, onchange }) => {
         </label>
 
         <textarea
-          value={data || ""}
-          onChange={(e) => onchange(e.target.value)}
+          value={summary}
+          onChange={(e) => handleChange(e.target.value)}
           rows={9}
           maxLength={1000}
           placeholder="Example: Motivated Computer Science student with strong experience in React, Node.js and MongoDB. Passionate about building scalable web applications and solving real-world problems."
-          className="w-full px-3 py-3 text-sm leading-relaxed"
+          className="w-full rounded-lg border border-gray-300 px-3 py-3 text-sm leading-relaxed outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
 
-        <div className="flex justify-between items-center text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <Sparkles className="size-3.5" />
             Keep it concise and relevant to your target role.
           </div>
 
-          <span>{(data || "").length}/1000</span>
+          <span>{summary.length}/1000</span>
         </div>
       </div>
     </div>

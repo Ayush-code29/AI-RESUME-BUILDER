@@ -1,3 +1,4 @@
+
 import {
   BriefcaseBusiness,
   Globe,
@@ -6,19 +7,57 @@ import {
   Phone,
   User,
 } from "lucide-react";
-import React from "react";
+import { useState } from "react";
 
-const PersonalInfoForm = ({
-  data,
-  onchange,
-  removebackground,
-  setremovebackground,
-}) => {
+async function compressImage(file) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please select a valid image.");
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = sourceUrl;
+    });
+
+    const maxDimension = 600;
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(image.width, image.height)
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Unable to process this image.");
+    }
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    return canvas.toDataURL("image/jpeg", 0.75);
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
+export default function PersonalInfoForm({ data, onchange }) {
+  const [imageError, setImageError] = useState("");
+  const [processingImage, setProcessingImage] = useState(false);
+
   const handlechange = (field, value) => {
     onchange({
       ...data,
       personal_info: {
-        ...data.personal_info,
+        ...(data.personal_info || {}),
         [field]: value,
       },
     });
@@ -73,6 +112,32 @@ const PersonalInfoForm = ({
     },
   ];
 
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setImageError("");
+
+    if (file.size > 8 * 1024 * 1024) {
+      setImageError("Please select an image smaller than 8 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setProcessingImage(true);
+
+    try {
+      const imageData = await compressImage(file);
+      handlechange("image", imageData);
+    } catch (error) {
+      setImageError(error.message || "Could not process this image.");
+    } finally {
+      setProcessingImage(false);
+      event.target.value = "";
+    }
+  };
+
   return (
     <div>
       <h3 className="text-lg font-semibold text-gray-900">
@@ -87,82 +152,53 @@ const PersonalInfoForm = ({
         <label className="cursor-pointer">
           {data.personal_info?.image ? (
             <img
-              src={
-                typeof data.personal_info.image === "string"
-                  ? data.personal_info.image
-                  : URL.createObjectURL(data.personal_info.image)
-              }
-              alt="user-image"
-              className="w-16 h-16 rounded-full object-cover mt-5 ring ring-slate-300 hover:opacity-80"
+              src={data.personal_info.image}
+              alt="Profile"
+              className="mt-5 h-16 w-16 rounded-full object-cover ring ring-slate-300 hover:opacity-80"
             />
           ) : (
-            <div className="inline-flex items-center gap-2 mt-5 text-slate-600 hover:text-slate-700">
-              <User className="size-10 p-2.5 border rounded-full" />
-              <span>Upload user image</span>
+            <div className="mt-5 inline-flex items-center gap-2 text-slate-600 hover:text-slate-700">
+              <User className="size-10 rounded-full border p-2.5" />
+              <span>
+                {processingImage ? "Processing image..." : "Upload user image"}
+              </span>
             </div>
           )}
 
           <input
             type="file"
-            accept="image/jpeg,image/png"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-
-              if (file) {
-                handlechange("image", file);
-              }
-            }}
+            onChange={handleImageChange}
+            disabled={processingImage}
           />
         </label>
 
-        {data.personal_info?.image instanceof File && (
-          <div className="flex flex-col gap-1 pl-4 text-sm">
-            <p>Remove Background</p>
-
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={removebackground}
-                onChange={() =>
-                  setremovebackground((prev) => !prev)
-                }
-              />
-
-              <div
-                className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${
-                  removebackground
-                    ? "bg-green-600"
-                    : "bg-slate-300"
-                }`}
-              >
-                <div
-                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
-                    removebackground
-                      ? "translate-x-4"
-                      : "translate-x-0"
-                  }`}
-                />
-              </div>
-            </label>
-          </div>
+        {data.personal_info?.image && (
+          <button
+            type="button"
+            onClick={() => handlechange("image", "")}
+            className="mt-5 text-sm text-red-600 hover:underline"
+          >
+            Remove image
+          </button>
         )}
       </div>
+
+      {imageError && (
+        <p role="alert" className="mt-2 text-sm text-red-600">
+          {imageError}
+        </p>
+      )}
 
       {fields.map((field) => {
         const Icon = field.icon;
 
         return (
-          <div
-            key={field.key}
-            className="space-y-1 mt-5"
-          >
+          <div key={field.key} className="mt-5 space-y-1">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
               <Icon className="size-4" />
-
               {field.label}
-
               {field.required && (
                 <span className="text-red-500">*</span>
               )}
@@ -170,24 +206,18 @@ const PersonalInfoForm = ({
 
             <input
               type={field.type}
-              value={
-                data.personal_info?.[field.key] || ""
+              value={data.personal_info?.[field.key] || ""}
+              onChange={(event) =>
+                handlechange(field.key, event.target.value)
               }
-              onChange={(e) => {
-                handlechange(
-                  field.key,
-                  e.target.value
-                );
-              }}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-sm"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring focus:ring-blue-500"
               placeholder={`Enter your ${field.label.toLowerCase()}`}
               required={field.required}
+              maxLength={field.key === "email" ? 254 : 500}
             />
           </div>
         );
       })}
     </div>
   );
-};
-
-export default PersonalInfoForm;
+}

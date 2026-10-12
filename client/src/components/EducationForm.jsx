@@ -1,3 +1,4 @@
+
 import {
   CalendarDays,
   GraduationCap,
@@ -5,7 +6,6 @@ import {
   School,
   Trash2,
 } from "lucide-react";
-import React from "react";
 
 const emptyEducation = {
   degree: "",
@@ -15,30 +15,30 @@ const emptyEducation = {
   graduation_date: "",
 };
 
-const EducationForm = ({ data, onchange }) => {
+export default function EducationForm({ data, onchange }) {
   const educationList = Array.isArray(data) ? data : [];
 
   const addEducation = () => {
-    onchange([...educationList, { ...emptyEducation }]);
+    onchange([
+      ...educationList,
+      { ...emptyEducation },
+    ]);
   };
 
   const removeEducation = (index) => {
     onchange(
-      educationList.filter((_, itemIndex) => itemIndex !== index)
+      educationList.filter((_, i) => i !== index)
     );
   };
 
   const updateEducation = (index, field, value) => {
-    const updatedEducation = educationList.map((education, itemIndex) => {
-      if (itemIndex !== index) return education;
-
-      return {
-        ...education,
-        [field]: value,
-      };
-    });
-
-    onchange(updatedEducation);
+    onchange(
+      educationList.map((education, i) =>
+        i === index
+          ? { ...education, [field]: value }
+          : education
+      )
+    );
   };
 
   return (
@@ -47,25 +47,23 @@ const EducationForm = ({ data, onchange }) => {
         <h3 className="text-lg font-semibold text-gray-900">
           Education
         </h3>
-
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="mt-1 text-sm text-gray-600">
           Add your academic qualifications and educational background.
         </p>
       </div>
 
       <div className="space-y-5">
         {educationList.map((education, index) => (
-          <div
+          <article
             key={index}
-            className="border border-gray-200 rounded-xl p-5 bg-gray-50/50"
+            className="rounded-xl border border-gray-200 bg-gray-50/50 p-5"
           >
-            <div className="flex items-center justify-between mb-5">
+            <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50">
                   <GraduationCap className="size-4 text-blue-600" />
                 </div>
-
-                <h4 className="font-medium text-gray-800">
+                <h4 className="font-semibold text-gray-800">
                   Education {index + 1}
                 </h4>
               </div>
@@ -73,20 +71,19 @@ const EducationForm = ({ data, onchange }) => {
               <button
                 type="button"
                 onClick={() => removeEducation(index)}
-                className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-all"
-                title="Remove education"
+                aria-label={`Remove education ${index + 1}`}
+                className="rounded-lg p-2 text-red-500 transition hover:bg-red-50"
               >
-                <Trash2 className="size-4" />
+                <Trash2 size={17} />
               </button>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <GraduationCap className="size-4" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-600">
+                  <GraduationCap size={16} />
                   Degree
                 </label>
-
                 <input
                   type="text"
                   value={education.degree || ""}
@@ -94,15 +91,14 @@ const EducationForm = ({ data, onchange }) => {
                     updateEducation(index, "degree", e.target.value)
                   }
                   placeholder="e.g. B.Tech"
-                  className="w-full px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-600">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-600">
                   Field of Study
                 </label>
-
                 <input
                   type="text"
                   value={education.field || ""}
@@ -110,36 +106,30 @@ const EducationForm = ({ data, onchange }) => {
                     updateEducation(index, "field", e.target.value)
                   }
                   placeholder="e.g. Computer Science"
-                  className="w-full px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="space-y-1 sm:col-span-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <School className="size-4" />
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-600">
+                  <School size={16} />
                   Institution
                 </label>
-
                 <input
                   type="text"
                   value={education.institution || ""}
                   onChange={(e) =>
-                    updateEducation(
-                      index,
-                      "institution",
-                      e.target.value
-                    )
+                    updateEducation(index, "institution", e.target.value)
                   }
                   placeholder="e.g. MANIT Bhopal"
-                  className="w-full px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-600">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-600">
                   GPA / Percentage
                 </label>
-
                 <input
                   type="text"
                   value={education.gpa || ""}
@@ -147,16 +137,15 @@ const EducationForm = ({ data, onchange }) => {
                     updateEducation(index, "gpa", e.target.value)
                   }
                   placeholder="e.g. 8.7 CGPA"
-                  className="w-full px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <CalendarDays className="size-4" />
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-600">
+                  <CalendarDays size={16} />
                   Graduation Date
                 </label>
-
                 <input
                   type="month"
                   value={education.graduation_date || ""}
@@ -167,24 +156,22 @@ const EducationForm = ({ data, onchange }) => {
                       e.target.value
                     )
                   }
-                  className="w-full px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
-          </div>
+          </article>
         ))}
 
         <button
           type="button"
           onClick={addEducation}
-          className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-3 text-sm font-semibold text-gray-600 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600"
         >
-          <Plus className="size-4" />
+          <Plus size={17} />
           Add Education
         </button>
       </div>
     </div>
   );
-};
-
-export default EducationForm;
+}

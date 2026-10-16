@@ -17,6 +17,7 @@ import ProjectForm from "../components/ProjectForm";
 import SkillsForm from "../components/SkillsForm";
 import ResumePreview from "../components/ResumePreview";
 import TemplateSelector from "../components/TemplateSelector";
+import { downloadResumePdf } from "../utils/downloadResumePdf";
 
 import {
   createResume,
@@ -155,6 +156,12 @@ export default function ResumeBuilder() {
     setSaving(true);
     setSaveMessage("");
 
+    let savedOnline = false;
+    let onlineError = "";
+    let downloaded = false;
+    let downloadError = "";
+
+    // 1. Save to the database (so it appears in "My Resumes").
     try {
       const payload = normalizeResume(resumedata);
 
@@ -174,14 +181,37 @@ export default function ResumeBuilder() {
         })
       );
 
-      setMessageType("success");
-      setSaveMessage("Resume saved successfully.");
+      savedOnline = true;
     } catch (error) {
-      setMessageType("error");
-      setSaveMessage(error.message || "Failed to save resume.");
-    } finally {
-      setSaving(false);
+      onlineError = error.message || "Failed to save resume.";
     }
+
+    // 2. Save a PDF copy to the user's device.
+    try {
+      await downloadResumePdf(
+        document.getElementById("resume-preview"),
+        resumedata.personal_info?.full_name || resumedata.title
+      );
+      downloaded = true;
+    } catch (error) {
+      downloadError = error.message || "Failed to download PDF.";
+    }
+
+    if (savedOnline && downloaded) {
+      setMessageType("success");
+      setSaveMessage("Resume saved and downloaded to your device.");
+    } else if (downloaded) {
+      setMessageType("error");
+      setSaveMessage(`Downloaded to your device, but not saved online: ${onlineError}`);
+    } else if (savedOnline) {
+      setMessageType("error");
+      setSaveMessage(`Saved online, but the PDF download failed: ${downloadError}`);
+    } else {
+      setMessageType("error");
+      setSaveMessage(onlineError || downloadError);
+    }
+
+    setSaving(false);
   };
 
   const goToSection = (index) => {

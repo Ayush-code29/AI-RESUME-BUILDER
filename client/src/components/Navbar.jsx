@@ -11,10 +11,6 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const handleGetStarted = () => {
-    navigate(isAuthenticated ? "/app" : "/login");
-  };
-
   return (
     <>
       {/* Top Announcement Bar */}
@@ -72,14 +68,6 @@ const Navbar = () => {
 
           {/* Authentication Buttons */}
           <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={handleGetStarted}
-              className="rounded-full bg-green-500 px-7 py-3 text-sm font-semibold text-white transition hover:bg-green-600"
-            >
-              {isAuthenticated ? "Dashboard" : "Get started"}
-            </button>
-
             {isAuthenticated ? (
               <button
                 type="button"

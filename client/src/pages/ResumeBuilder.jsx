@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -266,6 +265,7 @@ export default function ResumeBuilder() {
         return (
           <SkillsForm
             data={resumedata.skills}
+            profession={resumedata.personal_info?.profession}
             onchange={(skills) => handleChange({ skills })}
           />
         );

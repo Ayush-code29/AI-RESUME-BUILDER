@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Eye,
@@ -6,67 +7,78 @@ import {
   LayoutTemplate,
   Palette,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import Title from "./Title";
 
 const features = [
   {
     icon: Eye,
-    title: "Live preview",
-    text: "See every change appear on your resume instantly while you type, so there are no surprises later.",
+    title: "A preview that keeps up",
+    text: "See your resume take shape as you edit. No guessing, no last-minute formatting surprises.",
   },
   {
     icon: LayoutTemplate,
-    title: "Clean templates",
-    text: "Switch between professional layouts at any time. Your content stays, only the design changes.",
+    title: "Layouts with purpose",
+    text: "Choose a clean, professional template that lets your experience do the talking.",
   },
   {
     icon: Palette,
-    title: "Custom accent colour",
-    text: "Pick a colour that matches your style and apply it across headings and highlights in one click.",
+    title: "A little personality",
+    text: "Use a considered accent colour to make the details feel like yours, without overdoing it.",
   },
   {
     icon: FileDown,
-    title: "One-click PDF",
-    text: "Download a ready-to-send PDF straight to your device when your resume is finished.",
+    title: "Ready when you are",
+    text: "Export a polished PDF to share with recruiters, hiring teams, or your next opportunity.",
   },
   {
     icon: FolderOpen,
-    title: "Multiple resumes",
-    text: "Keep a separate version for each role and edit any of them later from your dashboard.",
+    title: "Every version, organised",
+    text: "Keep resumes tailored to different roles together in one convenient dashboard.",
   },
   {
     icon: ShieldCheck,
-    title: "Private by default",
-    text: "Your resumes live in your own account and stay private unless you decide otherwise.",
+    title: "Your work, your account",
+    text: "Sign in to save your resumes and return to them whenever you need to make an update.",
   },
 ];
 
 const Features = () => {
   return (
-    <section id="features" className="scroll-mt-4 bg-white px-5 py-20 md:px-8">
+    <section
+      id="features"
+      className="scroll-mt-20 border-y border-slate-100 bg-[#fafbf8] px-5 py-20 md:px-8 md:py-28"
+    >
       <Title
-        eyebrow="Features"
-        icon={Sparkles}
-        title="Everything you need to build a great resume"
-        description="Simple tools that take care of the formatting, so you can focus on what you want to say."
+        eyebrow="Less formatting. More focus."
+        title="The details are taken care of."
+        description="Everything you need to put your experience forward clearly — without fighting with a document editor."
       />
 
-      <div className="mx-auto mt-14 grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map(({ icon: Icon, title, text }) => (
-          <div
+      <div className="mx-auto mt-12 grid max-w-6xl gap-3 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3">
+        {features.map(({ icon: Icon, title, text }, index) => (
+          <article
             key={title}
-            className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-green-300 hover:shadow-lg hover:shadow-green-900/5"
+            className="group rounded-2xl border border-slate-200/80 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-[#c9dca9] hover:shadow-[0_16px_40px_-28px_rgba(35,55,25,.28)] sm:p-7"
           >
-            <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl bg-green-50 text-green-600 transition group-hover:bg-green-500 group-hover:text-white">
-              <Icon size={24} />
+            <div className="mb-9 flex items-center justify-between">
+              <span className="flex size-11 items-center justify-center rounded-xl bg-[#f0f6e8] text-[#587c2c] transition group-hover:bg-[#dff0c1]">
+                <Icon size={20} strokeWidth={1.7} />
+              </span>
+
+              <span className="text-xs tabular-nums text-slate-300">
+                {String(index + 1).padStart(2, "0")}
+              </span>
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+
+            <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+              {title}
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
               {text}
             </p>
-          </div>
+          </article>
         ))}
       </div>
     </section>

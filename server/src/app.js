@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const express = require("express");
@@ -8,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 
 const authRoutes = require("./routes/authRoutes");
 const resumeRoutes = require("./routes/resumeRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 const notFound = require("./middleware/notFound");
 const errorMiddleware = require("./middleware/errorMiddleware");
 
@@ -74,6 +74,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api", apiLimiter);
 app.use("/api/resumes", resumeRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use(notFound);
 app.use(errorMiddleware);

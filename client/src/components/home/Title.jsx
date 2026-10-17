@@ -1,12 +1,26 @@
-import React from 'react'
 
-const Title = ({title,description}) => {
+import React from "react";
+
+const Title = ({ eyebrow, title, description }) => {
   return (
-    <div className='text-center mt-6 text-slate-700'>
-        <h2 className='text-3xl sm:text-4xl font-medium'>{title}</h2>
-        <p className='max-sm max-w-2xl mt-4 text-slate-500'>{description}</p>
-    </div>
-  )
-}
+    <div className="mx-auto max-w-3xl text-center">
+      {eyebrow && (
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6e923b]">
+          {eyebrow}
+        </p>
+      )}
 
-export default Title
+      <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.045em] text-[#17231b] sm:text-4xl md:text-5xl">
+        {title}
+      </h2>
+
+      {description && (
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+};
+
+export default Title;

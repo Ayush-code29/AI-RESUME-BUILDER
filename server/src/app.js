@@ -70,7 +70,12 @@ app.get("/api/health", (req, res) => {
     environment: process.env.NODE_ENV || "development",
   });
 });
-
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "AI Resume Builder API is running 🚀",
+  });
+});
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api", apiLimiter);
 app.use("/api/resumes", resumeRoutes);

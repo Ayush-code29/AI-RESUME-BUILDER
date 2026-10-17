@@ -16,7 +16,7 @@ const app = express();
 app.disable("x-powered-by");
 
 const allowedOrigins = (
-  process.env.CLIENT_URL || "http://localhost:5173"
+  "https://ai-resume-builder-delta.vercel.app" || "http://localhost:5173"
 )
   .split(",")
   .map((origin) => origin.trim())

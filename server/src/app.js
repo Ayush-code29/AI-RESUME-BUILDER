@@ -15,73 +15,187 @@ const app = express();
 
 app.disable("x-powered-by");
 
+// ======================================================
+// CORS CONFIGURATION
+// ======================================================
+
 const allowedOrigins = (
-  "https://ai-resume-builder-delta.vercel.app" || "http://localhost:5173"
+  process.env.CLIENT_URL ||
+  "https://ai-resume-builder-delta.vercel.app,http://localhost:5173"
 )
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
+
+console.log("Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests that don't have an Origin header
+      // (for example, direct browser/API requests)
+      if (!origin) {
         return callback(null, true);
       }
 
-      return callback(new Error("Origin is not allowed by CORS."));
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      console.error("CORS blocked origin:", origin);
+
+      return callback(
+        new Error(`Origin ${origin} is not allowed by CORS`)
+      );
     },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    credentials: true,
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
+    optionsSuccessStatus: 204,
   })
 );
 
+// ======================================================
+// SECURITY
+// ======================================================
+
 app.use(helmet());
 
-app.use(express.json({ limit: "1mb", strict: true }));
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+// ======================================================
+// BODY PARSERS
+// ======================================================
+
+app.use(
+  express.json({
+    limit: "1mb",
+    strict: true,
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: false,
+    limit: "1mb",
+  })
+);
+
+// ======================================================
+// RATE LIMITING
+// ======================================================
 
 const windowMs =
-  Number.parseInt(process.env.API_RATE_LIMIT_WINDOW_MS, 10) ||
-  15 * 60 * 1000;
+  Number.parseInt(
+    process.env.API_RATE_LIMIT_WINDOW_MS,
+    10
+  ) || 15 * 60 * 1000;
 
 const apiLimiter = rateLimit({
   windowMs,
-  limit: Number.parseInt(process.env.API_RATE_LIMIT_MAX, 10) || 200,
+
+  limit:
+    Number.parseInt(
+      process.env.API_RATE_LIMIT_MAX,
+      10
+    ) || 200,
+
   standardHeaders: "draft-8",
+
   legacyHeaders: false,
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
+
   limit: 10,
+
   standardHeaders: "draft-8",
+
   legacyHeaders: false,
+
   message: {
     success: false,
-    message: "Too many authentication attempts. Try again later.",
+    message:
+      "Too many authentication attempts. Try again later.",
   },
 });
+
+// ======================================================
+// HEALTH CHECK
+// ======================================================
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "Resume Builder API is running.",
-    environment: process.env.NODE_ENV || "development",
+    environment:
+      process.env.NODE_ENV || "development",
   });
 });
+
+// ======================================================
+// ROOT ROUTE
+// ======================================================
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "AI Resume Builder API is running 🚀",
   });
 });
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api", apiLimiter);
-app.use("/api/resumes", resumeRoutes);
-app.use("/api/ai", aiRoutes);
+
+// ======================================================
+// API ROUTES
+// ======================================================
+
+app.use(
+  "/api/auth",
+  authLimiter,
+  authRoutes
+);
+
+app.use(
+  "/api",
+  apiLimiter
+);
+
+app.use(
+  "/api/resumes",
+  resumeRoutes
+);
+
+app.use(
+  "/api/ai",
+  aiRoutes
+);
+
+// ======================================================
+// 404 HANDLER
+// MUST BE AFTER ALL ROUTES
+// ======================================================
 
 app.use(notFound);
+
+// ======================================================
+// ERROR HANDLER
+// MUST BE LAST
+// ======================================================
+
 app.use(errorMiddleware);
 
 module.exports = app;

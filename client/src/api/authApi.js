@@ -1,6 +1,6 @@
-
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+  import.meta.env.VITE_API_URL ||
+  "https://ai-resume-builder-1-ubnr.onrender.com/api"
 ).replace(/\/+$/, "");
 
 const TOKEN_KEY = "resume_builder_token";
